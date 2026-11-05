@@ -31,6 +31,8 @@ from a2ui.core import A2uiParseError
 from a2ui.core import A2uiRecursionError
 from a2ui.core import A2uiValidationError
 from a2ui.core.common import to_protocol_version
+from a2ui.inference_formats import A2uiXmlFormat
+from a2ui.inference_formats import A2uiXmlFormatFactory
 from a2ui.inference_formats import DirectJsonFormat
 from a2ui.inference_formats import to_message_dicts
 from a2ui.inference_formats import to_message_models
@@ -295,6 +297,18 @@ def _format_for(
     allowed_messages=None,
     progressive_keys=None,
 ):
+    if format_name in ("a2ui-xml", "a2ui_xml", "xml"):
+        kwargs = {}
+        if progressive_keys is not None:
+            kwargs["progressive_keys"] = frozenset(progressive_keys)
+        return A2uiXmlFormat(
+            catalogs=catalogs,
+            examples=examples,
+            allowed_messages=allowed_messages,
+            surface_id=CONFORMANCE_SURFACE_ID,
+            version=_protocol_version(catalogs),
+            **kwargs,
+        )
     if format_name == "express":
         express_kwargs = {}
         if progressive_keys is not None:
@@ -411,6 +425,7 @@ def get_marked_conformance_cases(*filenames):
 cases_compiler = get_marked_conformance_cases(
     "agent/express/compiler.yaml",
     "agent/direct_json/compiler.yaml",
+    "agent/a2ui_xml/compiler.yaml",
 )
 
 
@@ -440,6 +455,7 @@ def test_compiler_conformance(name, test_case):
 cases_decompiler = get_marked_conformance_cases(
     "agent/express/decompiler.yaml",
     "agent/direct_json/decompiler.yaml",
+    "agent/a2ui_xml/decompiler.yaml",
 )
 
 
@@ -531,6 +547,7 @@ def wrap_parts(parser, parts):
 cases_response_parser = get_marked_conformance_cases(
     "agent/express/response_parser.yaml",
     "agent/direct_json/response_parser.yaml",
+    "agent/a2ui_xml/response_parser.yaml",
 )
 
 
@@ -589,10 +606,10 @@ def test_response_parser_conformance(name, test_case):
 
 # --- Streaming Response Conformance (Direct JSON) ---
 
-cases_response_streaming = get_marked_conformance_cases(
-    "agent/direct_json/response_streaming.yaml",
-) + get_marked_conformance_cases(
-    "agent/express/response_streaming.yaml",
+cases_response_streaming = (
+    get_marked_conformance_cases("agent/direct_json/response_streaming.yaml")
+    + get_marked_conformance_cases("agent/express/response_streaming.yaml")
+    + get_marked_conformance_cases("agent/a2ui_xml/response_streaming.yaml")
 )
 
 
@@ -814,6 +831,7 @@ def run_format_case(test_case, tmp_path):
 cases_prompt_generator = get_marked_conformance_cases(
     "agent/direct_json/prompt_generator.yaml",
     "agent/express/prompt_generator.yaml",
+    "agent/a2ui_xml/prompt_generator.yaml",
 )
 
 
@@ -858,6 +876,15 @@ def _factory_for(format_name, allowed_messages=None, progressive_keys=None):
     from a2ui.inference_formats.experimental.elemental import ElementalFormatFactory
     from a2ui.inference_formats.express import ExpressFormatFactory
 
+    if format_name in ("a2ui-xml", "a2ui_xml", "xml"):
+        kwargs = {}
+        if progressive_keys is not None:
+            kwargs["progressive_keys"] = frozenset(progressive_keys)
+        return A2uiXmlFormatFactory(
+            allowed_messages=allowed_messages,
+            surface_id=CONFORMANCE_SURFACE_ID,
+            **kwargs,
+        )
     if format_name == "express":
         express_kwargs = {}
         if progressive_keys is not None:
